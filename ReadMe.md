@@ -5,13 +5,13 @@ This code is used to convert 3D multi-channel images into 2D images using Extend
 An example of 2D image generated using EMIP from the multi-channel fluorescent images
 
 <p align="center">
-<img src="img.png" alt="alt text" width="400" />
+<img src="fig/img.png" alt="alt text" width="400" />
 </p>
 
 An example of generated cluster mask using point annotations.
 
 <p align="center">
-<img src="mask.png" alt="alt text" width="400" />
+<img src="fig/mask.png" alt="alt text" width="400" />
 </p>
 
 1. purple => Background
