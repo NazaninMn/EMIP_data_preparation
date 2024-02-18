@@ -1,8 +1,10 @@
 """
-This script is used to create Voronoi labels and cluster labels from the point labels
-and prepare the dataset for training and testing.
+Extended Maximum intensity Projection (EMIP)
+This code is used to prepared data for training LECL model
 
-Author: Hui Qu
+Author: Nazanin Moradinasab
+
+Date: 2022
 """
 
 import os
@@ -29,7 +31,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main(opt):
-    # opt.ratio = 0.05
     dataset = opt.dataset
     ratio = opt.ratio
     nuclei_channel = opt.nuclei_channel
@@ -37,35 +38,35 @@ def main(opt):
     bit_value = opt.bit
     marker_channel_image = opt.marker_channel_image
     marker_channel = opt.marker_channel
-    data_dir = '../data/{:s}'.format(dataset)
-    img_dir = '../Image_classification/{:s}/TIFF_wsi'.format(dataset)
-    img_dir_rgb = '../data/{:s}/images_RGB'.format(dataset)
-    img_dir_class = '../data/{:s}/classification_labels'.format(dataset)
-    label_point_dir_2D = '../Image_classification/{:s}/labels_point/2D/'.format(dataset)
-    label_point_dir_3D = '../Image_classification/{:s}/labels_point/3D/'.format(dataset)
-    rois_path = '../Image_classification/{:s}/LesionROI/'.format(dataset)
-    ROI_nuclei_dir = '../Image_classification/{:s}/ROI_nuclei/'.format(dataset)
-    gt_class_label = '../Image_classification/{:s}/gt_class_label/'.format(dataset)
+    data_dir = '/scratch/nm4wu/{:s}'.format(dataset)
+    img_dir = '/scratch/nm4wu/{:s}/TIFF_wsi'.format(dataset)
+    img_dir_rgb = '/scratch/nm4wu/{:s}/images_RGB'.format(dataset)
+    img_dir_class = '/scratch/nm4wu/{:s}/classification_labels'.format(dataset)
+    label_point_dir_2D = '/scratch/nm4wu/{:s}/labels_point/2D/'.format(dataset)
+    label_point_dir_3D = '/scratch/nm4wu/{:s}/labels_point/3D/'.format(dataset)
+    rois_path = '/scratch/nm4wu/{:s}/LesionROI/'.format(dataset)
+    ROI_nuclei_dir = '/scratch/nm4wu/{:s}/ROI_nuclei/'.format(dataset)
+    gt_class_label = '/scratch/nm4wu/{:s}/gt_class_label/'.format(dataset)
 
-    label_vor_dir = '../Image_classification/{:s}/labels_voronoi_{:.2f}'.format(dataset, ratio)
-    label_cluster_dir = '../Image_classification/{:s}/labels_cluster_{:.2f}'.format(dataset, ratio)
-    Marker_range_dir = '../Image_classification/{:s}/Marker_{:.2f}'.format(dataset, ratio)
-    rgb_path = '../Image_classification/{:s}/RGB_maker_nuclei'.format(dataset)
-    patch_folder = '../data/{:s}/patches'.format(dataset)
-    train_data_dir = '../data_for_train/{:s}'.format(dataset)
+    label_vor_dir = '/scratch/nm4wu/{:s}/labels_voronoi_{:.2f}'.format(dataset, ratio)
+    label_cluster_dir = '/scratch/nm4wu/{:s}/labels_cluster_{:.2f}'.format(dataset, ratio)
+    Marker_range_dir = '/scratch/nm4wu/{:s}/Marker_{:.2f}'.format(dataset, ratio)
+    rgb_path = '/scratch/nm4wu/{:s}/RGB_maker_nuclei'.format(dataset)
+    patch_folder = '/scratch/nm4wu/{:s}/patches'.format(dataset)
+    train_data_dir = '/scratch/nm4wu/{:s}/data_for_train/'.format(dataset)
 
-    with open('../Image_classification/{:s}/train_val_test.json'.format(dataset), 'r') as file:
+    with open('/scratch/nm4wu//{:s}/train_val_test.json'.format(dataset), 'r') as file:
         data_list = json.load(file)
         train_list = data_list['train']
 
-    # ------ create point label
-#     nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, train_list, nuclei_channel_image, rois_path, ROI_nuclei_dir)
-#     nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, data_list['val'], nuclei_channel_image, rois_path, ROI_nuclei_dir)
-#     nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, data_list['test'], nuclei_channel_image, rois_path, ROI_nuclei_dir)
+#     ------ create point label
+    nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, train_list, nuclei_channel_image, rois_path, ROI_nuclei_dir)
+    nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, data_list['val'], nuclei_channel_image, rois_path, ROI_nuclei_dir)
+    nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, data_list['test'], nuclei_channel_image, rois_path, ROI_nuclei_dir)
 
 
 
-    # ------ create Voronoi label from point label
+#     ------ create Voronoi label from point label
     create_Voronoi_label(label_point_dir_2D, label_vor_dir, train_list, nuclei_label=nuclei_channel) 
     create_Voronoi_label(label_point_dir_2D, label_vor_dir, data_list['val'], nuclei_label=nuclei_channel) 
     create_Voronoi_label(label_point_dir_2D, label_vor_dir, data_list['test'], nuclei_label=nuclei_channel)
@@ -81,7 +82,7 @@ def main(opt):
 
 
 
-    #--------Generating Instance labels
+# #     --------Generating Instance labels
     instance_labels(label_cluster_dir, dataset, train_list,n_channel=4, gt_class_label=gt_class_label)
     instance_labels(label_cluster_dir, dataset, data_list['val'],n_channel=4, gt_class_label=gt_class_label)
     
@@ -89,8 +90,7 @@ def main(opt):
 
     
     
-    
-    #---------Multichannel (Nuclei+marker)
+#     ---------Multichannel (Nuclei+marker)
     multichannel(rgb_path, train_list,ROI_nuclei_dir, Marker_range_dir)
     multichannel(rgb_path, data_list['val'],ROI_nuclei_dir, Marker_range_dir)
     multichannel(rgb_path, data_list['test'],ROI_nuclei_dir, Marker_range_dir)
@@ -100,20 +100,21 @@ def main(opt):
     if os.path.exists(patch_folder):
         shutil.rmtree(patch_folder)
     create_folder(patch_folder)
-    print("Spliting large images into small patches...")
+    print("c large images into small patches...")
+    print(patch_folder)
     split_patches(rgb_path, '{:s}/images'.format(patch_folder))
     split_patches(label_vor_dir, '{:s}/labels_voronoi'.format(patch_folder), 'label_vor')
     split_patches(label_cluster_dir, '{:s}/labels_cluster'.format(patch_folder), 'label_cluster')
     split_patches(label_point_dir_2D, '{:s}/labels_point'.format(patch_folder), 'label_point')
     split_patches(gt_class_label, '{:s}/classification_labels'.format(patch_folder))
 
-    # ------ divide dataset into train, val and test sets
+#     # ------ divide dataset into train, val and test sets
     organize_data_for_training(data_dir, train_data_dir, dataset)
 
-    # ------ compute mean and std
+#     # ------ compute mean and std
     compute_mean_std(rgb_path, train_data_dir, dataset)
 
-    # ------ Hovernet_data
+#     # ------ Hovernet_data
     hovernet_format(data = 'train', train_data_dir = train_data_dir, marker_channel=marker_channel)
     hovernet_format(data = 'test', train_data_dir = train_data_dir, marker_channel=marker_channel)
   
@@ -126,7 +127,7 @@ def multichannel(rgb_path, train_list,ROI_nuclei_dir, Marker_range_dir):
     
     create_folder(rgb_path)
     for img_name in train_list:
-        if img_name.endswith('png'):
+        if (img_name.endswith('png')) or (img_name.endswith('tif')):
             name = img_name.split('.')[0]
             nuclei = np.load(os.path.join(ROI_nuclei_dir, name + '.npy'))
             nuclei = bytescale(nuclei)
@@ -161,7 +162,7 @@ def hovernet_format(data, train_data_dir, marker_channel):
     print(img_path)
     label_path = '{:s}/labels_cluster/{:s}'.format(train_data_dir,data)
     class_path = '{:s}/classification_labels/{:s}'.format(train_data_dir,data)
-    path_save = '{:s}/Hovernet_data/{:s}/'.format(train_data_dir,data)
+    path_save = '{:s}/LECL_data/{:s}/'.format(train_data_dir,data)
     create_folder(path_save)
     list_img=os.listdir(img_path)
     list_label=os.listdir(label_path)
@@ -169,7 +170,6 @@ def hovernet_format(data, train_data_dir, marker_channel):
     n=0
     for img in list_img:
       if img.endswith('png'):
-#         print(img)
         img_rgb=np.array(Image.open(os.path.join(img_path,img)).convert('RGB'))
         label_id=img[:-4]+'_label_cluster.png'
         a=np.array(Image.open(os.path.join(label_path,label_id)))
@@ -191,7 +191,6 @@ def hovernet_format(data, train_data_dir, marker_channel):
                    class_label[i,j]=2
                 else:
                    class_label[i,j]= b[i,j]/255
-#         class_label=np.load(os.path.join(class_path,class_id))[:,:,2]+(b/255)    #background=0, nucleu execpt class2 are 1, class 2 is 2
         data=np.concatenate([img_rgb, inastance_label[:,:,np.newaxis], semi[:,:,np.newaxis], class_label[:,:,np.newaxis].astype(np.int32)],2)
         np.save(path_save +img[:-4], data)
         n+=1
@@ -273,7 +272,7 @@ def create_Voronoi_label(data_dir, save_dir, train_list, nuclei_label=0):
         regions, vertices = voronoi_finite_polygons_2d(vor)
         box = Polygon([[0, 0], [0, w], [h, w], [h, 0]])
         region_masks = np.zeros((h, w), dtype=np.int16)
-        edges = np.zeros((h, w), dtype=np.bool)
+        edges = np.zeros((h, w), dtype=bool)
         count = 1
         for region in regions:
             polygon = vertices[region]
@@ -341,8 +340,6 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
         marker_image = mask_size[:, :, np.newaxis] * marker_image
 
 
-
-
         # taking the shape of the image
         if len(ori_image.shape) == 3:
             h, w, z = ori_image.shape
@@ -371,10 +368,10 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
         clip_dist_embeddings = final_.reshape(-1, 1)
         # TODO: shape is 2 or 3
         if len(ori_image.shape) == 3:
-            color_embeddings = np.array(ori_image, dtype=np.float).reshape(-1, 1) / 10  # Divide by 10 to be at the range of the distance transformation    #
+            color_embeddings = np.array(ori_image, dtype=float).reshape(-1, 1) / 10  # Divide by 10 to be at the range of the distance transformation    #
         # TODO: shape is 2 or 3
         if len(ori_image.shape) == 2:
-            color_embeddings = np.array(ori_image, dtype=np.float).reshape(-1, 1) / 10
+            color_embeddings = np.array(ori_image, dtype=float).reshape(-1, 1) / 10
         embeddings = np.concatenate((color_embeddings, clip_dist_embeddings), axis=1)
 
         # print("\t\tPerforming k-means clustering...")
@@ -391,23 +388,11 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
         overlap_nums = [np.sum((clusters == i) * dilated_label_point) for i in remain_indices]
         background_idx = remain_indices[np.argmin(overlap_nums)]
         nuclei_range = (clusters != background_idx) # it is used to determine the range of nuclei
-        # nuclei_cluster = clusters == nuclei_idx
-        # background_cluster = clusters == background_idx
 
-
-
-
-        # refine clustering results
-        # print("\t\tRefining clustering results...")
-        # nuclei_labeled = measure.label(nuclei_cluster)   #TODO:  consider this in voronoi nuclei_cluster (in voronoi)=> cell_i = voronoi_cells == cell_indices[i]  nucleus_i = cell_i[:,:,np.newaxis] * nuclei_cluster;  nucleus_i[:,:,:].sum(axis=0).sum(axis=0)>0
-        # initial_nuclei = morphology.remove_small_objects(nuclei_labeled, 10)
-        # refined_nuclei = np.zeros(initial_nuclei.shape, dtype=np.bool)
-        refined_marker = np.zeros(nuclei_range.shape, dtype=np.float)
+        refined_marker = np.zeros(nuclei_range.shape, dtype=float)
         label_vor = io.imread('{:s}/{:s}_label_vor.png'.format(label_vor_dir, img_name[:-4]))
         voronoi_cells = measure.label(label_vor[:, :, 0] == 0)
         voronoi_cells = morphology.dilation(voronoi_cells, morphology.disk(2))
-
-
 
         # refine clustering results
         unique_vals = np.unique(voronoi_cells)
@@ -420,23 +405,9 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
             nuclei_range_cell = nuclei_range_i[:, :, :].sum(axis=0).sum(axis=0) > 0
             marker_image_i = cell_i[:,:,np.newaxis] * marker_image
             marker_image_i = marker_image_i * nuclei_range_cell
-            # nucleus_i_dilated = morphology.binary_dilation(nucleus_i, morphology.disk(5))
-            # nucleus_i_dilated = morphology.binary_dilation(nucleus_i, morphology.ball(5))
-            # nucleus_i_dilated_filled = ndi_morph.binary_fill_holes(nucleus_i_dilated)
-            # nucleus_i_final = morphology.binary_erosion(nucleus_i_dilated_filled, morphology.disk(7))
-            # nucleus_i_final = morphology.binary_erosion(nucleus_i_dilated_filled, morphology.ball(7))
-            # refined_nuclei += nucleus_i_final > 0
             refined_marker += marker_image_i
 
-        # refined_label = np.zeros((h, w, 3), dtype=np.uint8)
-        # label_point_dilated = morphology.dilation(label_point, morphology.disk(10))  # Nazanin 10==>15
-        # label_point_dilated = morphology.dilation(label_point, morphology.ball(10))
-        # refined_label[:, :, 0] = (background_cluster * (refined_nuclei == 0) * (label_point_dilated == 0)).astype(
-        #     np.uint8) * 255
 
-        # refined_label[:, :, 1] = refined_nuclei.astype(np.uint8) * 255
-
-        # io.imsave('{:s}/{:s}_label_cluster.png'.format(save_dir_nuclei, name), refined_label)
         np.save('{:s}/{:s}.npy'.format(Marker_range_dir, name), refined_marker)
 
         if cluster_label==True:
@@ -450,13 +421,12 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
 
            # TODO: shape is 2 or 3
            if len(ori_image_.shape) == 3:
-               color_embeddings = np.array(ori_image_, dtype=np.float).reshape(-1, 3) / 10
+               color_embeddings = np.array(ori_image_, dtype=float).reshape(-1, 3) / 10
            # TODO: shape is 2 or 3
            if len(ori_image_.shape) == 2:
-               color_embeddings = np.array(ori_image_, dtype=np.float).reshape(-1, 1) / 10
+               color_embeddings = np.array(ori_image_, dtype=float).reshape(-1, 1) / 10
            embeddings = np.concatenate((color_embeddings, clip_dist_embeddings), axis=1)
 
-           # print("\t\tPerforming k-means clustering...")
            # TODO: there is just background and nuclei
            kmeans = KMeans(n_clusters=3, random_state=0).fit(embeddings)
            clusters = np.reshape(kmeans.labels_, (h, w))
@@ -473,10 +443,9 @@ def create_cluster_label(data_dir, label_point_dir, label_vor_dir, save_dir_nucl
            background_cluster = clusters == background_idx
 
            # refine clustering results
-           # print("\t\tRefining clustering results...")
            nuclei_labeled = measure.label(nuclei_cluster)
            initial_nuclei = morphology.remove_small_objects(nuclei_labeled, 30)
-           refined_nuclei = np.zeros(initial_nuclei.shape, dtype=np.bool)
+           refined_nuclei = np.zeros(initial_nuclei.shape, dtype=bool)
 
            label_vor = io.imread('{:s}/{:s}_label_vor.png'.format(label_vor_dir, img_name[:-4]))
            voronoi_cells = measure.label(label_vor[:, :, 0] == 0)
@@ -511,7 +480,9 @@ def split_patches(data_dir, save_dir, post_fix=None):
     create_folder(save_dir)
 
     image_list = os.listdir(data_dir)
+    print(data_dir)
     for image_name in image_list:
+        print(image_name)
         if image_name.endswith('png'):
             name = image_name.split('.')[0]
             # below condition: if there is a post_fix, it only considers images with the same post_fix
@@ -560,27 +531,20 @@ def split_patches(data_dir, save_dir, post_fix=None):
             patch_size = 256
             h_overlap = 20
             w_overlap = 20
-            #             h_overlap = math.ceil((4 * patch_size - h) / 3)
-            #             w_overlap = math.ceil((4 * patch_size - w) / 3)
             for i in range(0, h - patch_size + 1, patch_size - h_overlap):
                 for j in range(0, w - patch_size + 1, patch_size - w_overlap):
                     if len(image.shape) >= 3:
                         patch = image[i:i + patch_size, j:j + patch_size, :]
                     else:
                         patch = image[i:i + patch_size, j:j + patch_size]
-                    #                     print(np.sum(seg_imgs))
                     seg_imgs.append(patch)
 
             for k in range(len(seg_imgs)):
                 if post_fix:
                     np.save('{:s}/{:s}_{:d}_{:s}.npy'.format(save_dir, name[:-len(post_fix) - 1], k, post_fix),
                             seg_imgs[k])
-                #                     cv2.imwrite('{:s}/{:s}_{:d}_{:s}.png'.format(save_dir, name[:-len(post_fix) - 1], k, post_fix), seg_imgs[k])
                 else:
                     np.save('{:s}/{:s}_{:d}.npy'.format(save_dir, name, k), seg_imgs[k])
-
-
-#                     cv2.imwrite('{:s}/{:s}_{:d}.png'.format(save_dir, name, k), seg_imgs[k])
 
 
 def organize_data_for_training(data_dir, train_data_dir,dataset):
@@ -624,7 +588,7 @@ def organize_data_for_training(data_dir, train_data_dir,dataset):
 
     # --- Step 2: move images and labels to each folder --- #
     print('Organizing data for training...')
-    with open('../Image_classification/{:s}/train_val_test.json'.format(dataset), 'r') as file:
+    with open('/scratch/nm4wu/{:s}/train_val_test.json'.format(dataset), 'r') as file:
         data_list = json.load(file)
         train_list, val_list, test_list = data_list['train'], data_list['val'], data_list['test']
 
@@ -649,11 +613,6 @@ def organize_data_for_training(data_dir, train_data_dir,dataset):
                 file_clus = '{:s}/patches/labels_point/{:s}'.format(data_dir, file_name[:-4] + '_label_point.npy')
                 dst = '{:s}/labels_point/train/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
                 shutil.copyfile(file_clus, dst)
-
-#                 file_clus = '{:s}/patches/images_RGB/{:s}'.format(data_dir, file_name[:-4] + '.png')
-#                 dst = '{:s}/images_RGB/train/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
-#                 shutil.copyfile(file_clus, dst)
-
                 file_clus = '{:s}/patches/classification_labels/{:s}'.format(data_dir, file_name[:-4] + '.npy')
                 dst = '{:s}/classification_labels/train/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
                 shutil.copyfile(file_clus, dst)
@@ -682,10 +641,6 @@ def organize_data_for_training(data_dir, train_data_dir,dataset):
                 file_clus = '{:s}/patches/labels_point/{:s}'.format(data_dir, file_name[:-4] + '_label_point.npy')
                 dst = '{:s}/labels_point/val/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
                 shutil.copyfile(file_clus, dst)
-
-#                 file_clus = '{:s}/patches/images_RGB/{:s}'.format(data_dir, file_name[:-4] + '.png')
-#                 dst = '{:s}/images_RGB/val/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
-#                 shutil.copyfile(file_clus, dst)
 
                 file_clus = '{:s}/patches/classification_labels/{:s}'.format(data_dir, file_name[:-4] + '.npy')
                 dst = '{:s}/classification_labels/val/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
@@ -716,42 +671,11 @@ def organize_data_for_training(data_dir, train_data_dir,dataset):
                 dst = '{:s}/labels_point/test/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
                 shutil.copyfile(file_clus, dst)
 
-#                 file_clus = '{:s}/patches/images_RGB/{:s}'.format(data_dir, file_name[:-4] + '.png')
-#                 dst = '{:s}/images_RGB/test/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
-#                 shutil.copyfile(file_clus, dst)
 
                 file_clus = '{:s}/patches/classification_labels/{:s}'.format(data_dir, file_name[:-4] + '.npy')
                 dst = '{:s}/classification_labels/test/{:s}'.format(train_data_dir, file_clus.split('/')[-1])
                 shutil.copyfile(file_clus, dst)
 
-        # # label_voronoi
-        # for file in glob.glob('{:s}/patches/labels_voronoi/{:s}*'.format(data_dir, name)):
-        #     file_name = file.split('/')[-1]
-        #     dst = '{:s}/labels_voronoi/train/{:s}'.format(train_data_dir, file_name)
-        #     shutil.copyfile(file, dst)
-        # label_cluster
-        # for file in glob.glob('{:s}/patches/labels_cluster/{:s}*'.format(data_dir, name)):
-        #     file_name = file.split('/')[-1]
-        #     dst = '{:s}/labels_cluster/train/{:s}'.format(train_data_dir, file_name)
-        #     shutil.copyfile(file, dst)
-    # val
-
-
-#     for img_name in val_list:
-#         name = img_name.split('.')[0]
-#         # images
-#         for file in glob.glob('{:s}/images/{:s}*'.format(data_dir, name)):
-#             file_name = file.split('/')[-1]
-#             dst = '{:s}/images/val/{:s}'.format(train_data_dir, file_name)
-#             shutil.copyfile(file, dst)
-#     # test
-#     for img_name in test_list:
-#         name = img_name.split('.')[0]
-#         # images
-#         for file in glob.glob('{:s}/images/{:s}*'.format(data_dir, name)):
-#             file_name = file.split('/')[-1]
-#             dst = '{:s}/images/test/{:s}'.format(train_data_dir, file_name)
-#             shutil.copyfile(file, dst)
 
 
 def compute_mean_std(data_dir, train_data_dir, dataset):
@@ -760,7 +684,7 @@ def compute_mean_std(data_dir, train_data_dir, dataset):
     total_square_sum = np.zeros(3)
     num_pixel = 0  # total num of all pixels
 
-    with open('../Image_classification/{:s}/train_val_test.json'.format(dataset), 'r') as file:
+    with open('/scratch/nm4wu/{:s}/train_val_test.json'.format(dataset), 'r') as file:
         data_list = json.load(file)
         train_list = data_list['train']
 
@@ -796,7 +720,12 @@ def create_folder(folder):
         os.makedirs(folder)
 
 def instance_labels(label_cluster_dir, dataset, train_list,n_channel, gt_class_label):
-    data_annotate = pd.read_excel('../Image_classification/{:s}/SpreadsheetforCellSummary.xlsx'.format(dataset))
+    data_annotate = pd.read_excel('/scratch/nm4wu/{:s}/SpreadsheetforCellSummary.xlsm'.format(dataset), sheet_name='Cell data')
+    """
+    This function is used to generate class labels by finding the intersection between ponit annotation and 
+    cluster labels.
+    The class label of the point annotation will be assined to the nucleaus in the cluster label with whoch it has intersection
+    """
     data_annotate.columns = data_annotate.iloc[0]
     data_annotate = data_annotate.drop(0)
     create_folder(gt_class_label)
@@ -809,11 +738,9 @@ def instance_labels(label_cluster_dir, dataset, train_list,n_channel, gt_class_l
         N_processed += 1
         flag = '' if N_processed < N_total else '\n'
         print('\r\t{:d}/{:d}'.format(N_processed, N_total), end=flag)
-        annotation = data_annotate[data_annotate.Filename.str.startswith(name)]
-        # print('\t[{:d}/{:d}] Processing image {:s} ...'.format(count, len(img_list), img_name))
+        annotation = data_annotate[data_annotate.Filename.str.contains(name)]
         image_rgb = io.imread('{:s}/{:s}_label_cluster.png'.format(label_cluster_dir, name))
         RGB_image = morphology.label(np.array(image_rgb)[:, :, 1])  # for green masks
-        #     print(name_image, RGB_image.shape)
         img_size0, img_size1 = RGB_image.shape[0], RGB_image.shape[1]
         label = np.zeros((img_size0, img_size1, n_channel))
         for j in range(annotation.shape[0]):
@@ -825,14 +752,9 @@ def instance_labels(label_cluster_dir, dataset, train_list,n_channel, gt_class_l
             instance_selected = RGB_image == instance_number
             if instance_number > 0:  # some of the points are not in the data
                 n_labels = len(str(annotation.iloc[j].Category))  # number of labels
-                #                 print(n_labels, instance_number, x_, y_)
                 for n in range(n_labels):
-                    #                   print(str(annotation.iloc[j].Category)[n])
                     class_number = str(annotation.iloc[j].Category)[n]
                     if n_labels == 1:
-                        #                      print('1', n_labels)
-                        #                      print(instance_selected.max())
-                        #                      print('label1',label.max())
                         label[:, :,
                         int(class_number) - 1] += instance_selected  # if the nuclei does not have any markers arround
                     #                      print('label1',label.max())
@@ -842,11 +764,7 @@ def instance_labels(label_cluster_dir, dataset, train_list,n_channel, gt_class_l
                             label[:, :,
                             int(class_number) - 1] += instance_selected  # types of the nuclei based on markers arround them
 
-            #                 print(instance_number)
-            #                 plt.figure(figsize=(5,5))
-            #                 plt.axis('off')
-            #                 plt.imshow(instance_selected)
-            #                 plt.show()
+
         label[label > 1] = 1  # a couple of max are corresponding t more than one nuclei
         np.save(os.path.join(gt_class_label , name + '.npy'), label)
 
@@ -861,11 +779,11 @@ def nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, train
     create_folder(label_point_dir_2D)
     create_folder(label_point_dir_3D)
     create_folder(ROI_nuclei_dir)
-    data_annotate = pd.read_excel('../Image_classification/{:s}/SpreadsheetforCellSummary.xlsx'.format(dataset))
+    data_annotate = pd.read_excel('/scratch/nm4wu/{:s}/SpreadsheetforCellSummary.xlsm'.format(dataset), sheet_name='Cell data')
     data_annotate.columns = data_annotate.iloc[0]
     data_annotate = data_annotate.drop(0)
 
-    print("Generating cluster label from point label...")
+    print("Generating point label...")
     N_total = len(train_list)
     N_processed = 0
     list_img = []
@@ -883,7 +801,7 @@ def nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, train
             h, w, z = ori_image.shape
         if len(ori_image.shape) == 2:
             h, w = ori_image.shape
-        annotation = data_annotate[data_annotate.Filename.str.startswith(name)]
+        annotation = data_annotate[data_annotate.Filename.str.contains(name)]
         mask_3D = np.zeros([h, w, z])
         mask_2D = np.zeros([h, w])
         for j in range(annotation.shape[0]):
@@ -898,17 +816,12 @@ def nuclei_point(img_dir, label_point_dir_2D, label_point_dir_3D, dataset, train
         np.save(label_point_dir_3D + name + '_label_point.npy', mask_3D)
 
         g_mask = gaussian_filter(mask_2D, sigma=5)
-        # plt.figure(figsize=(5, 5))
-        # plt.axis('off')
-        # plt.imshow(g_mask)
-        # plt.show()
-        #
-        # plt.figure(figsize=(5, 5))
-        # plt.axis('off')
-        # plt.imshow(np.max(ori_image,axis=2))
-        # plt.show()
+
 
 def ROI(img_dir, img_name, nuclei_channel_image, rois_path, ROI_nuclei_dir):
+    """
+    This function is used to read the region of interest
+    """
     name = img_name.split('.')[0]
     ori_image = io.imread('{:s}/{:s}.tif'.format(img_dir, name))[:, nuclei_channel_image]
     ori_image = np.moveaxis(ori_image, 0, 2)  # move z to the end

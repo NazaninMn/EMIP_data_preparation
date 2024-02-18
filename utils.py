@@ -1,3 +1,9 @@
+"""
+Taken from huiqu18/WeaklySegPointAnno
+
+Some parts were modified
+"""
+
 import os
 import numpy as np
 import random
@@ -9,7 +15,7 @@ import torch.nn.functional as F
 
 def poly2mask(vertex_row_coords, vertex_col_coords, shape):
     fill_row_coords, fill_col_coords = draw.polygon(vertex_row_coords, vertex_col_coords, shape)
-    mask = np.zeros(shape, dtype=np.bool)
+    mask = np.zeros(shape, dtype=bool)
     mask[fill_row_coords, fill_col_coords] = True
     return mask
 
@@ -303,11 +309,6 @@ def compute_avg_size(labels_instance_dir):
     results = []
     for filename in [*train_list, *val_list, *test_list]:
         name = filename.split('.')[0]
-        # if name[-5:] != 'label':
-        #     continue
-
-        # if '{:s}.png'.format(name) not in train_list:
-        #     continue
 
         label_instance = io.imread('{:s}/{:s}_label.png'.format(labels_instance_dir, name))
 
